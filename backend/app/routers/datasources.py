@@ -74,7 +74,7 @@ async def list_datasources(source: str = Query("neo4j", description="Data source
         return {"datasources": [
             {
                 "name": ds["name"],
-                "engine": ds.get("engine", "unknown"),
+                "engine": ds.get("engine") or "unknown",  # None인 경우도 "unknown" 반환
                 "tables": [],
                 "display_name": ds.get("display_name"),
                 "host": ds.get("host"),
@@ -193,6 +193,12 @@ async def create_datasource(
             
             # MindsDB용 파라미터 준비
             mindsdb_params = datasource.parameters.copy()
+            
+            # 빈 스키마 값 처리 - 빈 문자열이면 파라미터에서 제거
+            # MindsDB는 스키마가 없으면 모든 스키마에 접근
+            if 'schema' in mindsdb_params and mindsdb_params['schema'] in ['', None]:
+                del mindsdb_params['schema']
+                logger.info("Removed empty schema parameter for MindsDB")
             
             # localhost를 Docker 내부 호스트로 자동 대치
             # MindsDB는 Docker 컨테이너에서 실행되므로 localhost가 다른 의미를 가짐
